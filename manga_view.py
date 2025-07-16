@@ -317,7 +317,8 @@ def show_sharing_options():
     share_data_param = generate_share_url_param()
     if share_data_param:
         #base_app_url = "https://huggingface.co/spaces/kuroiikimono/yomima_show_multi_share"
-        base_app_url = "https://huggingface.co/spaces/Kuroinekomono/yomima2_share_v"
+        #base_app_url = "https://huggingface.co/spaces/Kuroinekomono/yomima2_share_v"
+        base_app_url = "https://yukctpkmjpskvgpvjecidp.streamlit.app/"
         parsed_base_url = urllib.parse.urlparse(base_app_url)
         query_dict = urllib.parse.parse_qs(parsed_base_url.query)
         query_dict['share'] = [share_data_param]
