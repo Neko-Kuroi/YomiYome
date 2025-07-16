@@ -1,0 +1,5 @@
+streamlit==1.46.0
+rarfile==4.2
+natsort==8.4.0
+Pillow==10.4.0
+requests==2.32.3
