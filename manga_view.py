@@ -373,7 +373,7 @@ def show_sharing_options():
 
 def show_manga_list():
     st.title("📚 マンガライブラリ")
-    st.subheader("�� 新しいマンガを追加")
+    st.subheader("📥 新しいマンガを追加")
     col1, col2 = st.columns([3, 1])
     with col1:
         new_url = st.text_input("マンガアーカイブURL (.zip, .cbz, .rar, .cbr)", placeholder="https://example.com/manga.zip")
