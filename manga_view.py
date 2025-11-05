@@ -197,7 +197,7 @@ def extract_archive(archive_path, extract_to, is_rar=False):
         st.error(f"エラー: アーカイブの解凍中に予期せぬエラーが発生しました: {e}")
     return natsorted(image_files)
 
- @st.cache_resource(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def load_image_as_bytesio(image_path):
     if not os.path.exists(image_path):
         # st.error(f"画像ファイルが見つかりません: {image_path}")
