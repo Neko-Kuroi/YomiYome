@@ -197,7 +197,7 @@ def extract_archive(archive_path, extract_to, is_rar=False):
         st.error(f"エラー: アーカイブの解凍中に予期せぬエラーが発生しました: {e}")
     return natsorted(image_files)
 
-@st.cache_resource(show_spinner=False)
+ @st.cache_resource(show_spinner=False)
 def load_image_as_bytesio(image_path):
     if not os.path.exists(image_path):
         # st.error(f"画像ファイルが見つかりません: {image_path}")
@@ -230,37 +230,37 @@ def shorten_tinyurl(long_url):
     except requests.exceptions.RequestException:
         return long_url # 短縮に失敗した場合は元のURLを返す
 
-def send_image_to_discord(image_path, webhook_url, filename):
-    if not webhook_url:
-        st.error("Discord Webhook URLが設定されていません。")
-        return False
+def send_image_to_discord(image_path, webhook_urls, filename):
     if not os.path.exists(image_path):
         st.error(f"画像ファイルが見つかりません: {image_path}")
         return False
 
-    try:
-        with open(image_path, 'rb') as f:
-            # Determine MIME type based on file extension
-            file_ext = os.path.splitext(image_path)[-1].lower()
-            if file_ext == '.png':
-                mime_type = 'image/png'
-            elif file_ext in ['.jpg', '.jpeg']:
-                mime_type = 'image/jpeg'
-            else:
-                st.error(f"サポートされていない画像形式です: {file_ext}")
-                return False
+    success = False
+    for webhook_url in webhook_urls:
+        if not webhook_url:
+            continue
+        try:
+            with open(image_path, 'rb') as f:
+                # Determine MIME type based on file extension
+                file_ext = os.path.splitext(image_path)[-1].lower()
+                if file_ext == '.png':
+                    mime_type = 'image/png'
+                elif file_ext in ['.jpg', '.jpeg']:
+                    mime_type = 'image/jpeg'
+                else:
+                    st.warning(f"サポートされていない画像形式です: {file_ext}。スキップします。")
+                    continue
 
-            files = {'file': (filename, f, mime_type)}
-            response = requests.post(webhook_url, files=files)
-            response.raise_for_status()
-            st.success(f"画像をDiscordに送信しました: {filename}")
-            return True
-    except requests.exceptions.RequestException as e:
-        st.error(f"Discordへの送信エラー: {e}")
-        return False
-    except Exception as e:
-        st.error(f"予期せぬエラーが発生しました: {e}")
-        return False
+                files = {'file': (filename, f, mime_type)}
+                response = requests.post(webhook_url, files=files)
+                response.raise_for_status()
+                st.success(f"画像をDiscordに送信しました: {filename} (Webhook: {webhook_url[:30]}...)")
+                success = True
+        except requests.exceptions.RequestException as e:
+            st.error(f"Discordへの送信エラー (Webhook: {webhook_url[:30]}...): {e}")
+        except Exception as e:
+            st.error(f"予期せぬエラーが発生しました (Webhook: {webhook_url[:30]}...): {e}")
+    return success
 
 # ==========================
 # Session State Management
@@ -280,7 +280,8 @@ def initialize_session_state():
         'show_sharing': False,
         'num_images_to_display': IMAGES_PER_LOAD,  # ▼▼▼ 追加 ▼▼▼
         'show_video': False,
-        'webhook_url': '' # Discord Webhook URL
+        'webhook_url_1': '', # Discord Webhook URL 1
+        'webhook_url_2': '' # Discord Webhook URL 2
     }
     for key, value in session_defaults.items():
         if key not in st.session_state:
@@ -390,10 +391,17 @@ def show_manga_list():
                 st.error("無効なURLまたは既に追加済みです")
     
     st.subheader("🔗 Discord Webhook設定")
-    st.session_state.webhook_url = st.text_input(
-        "Discord WEBHOOK",
-        value=st.session_state.webhook_url,
-        placeholder="https://discord.com/api/webhooks/..."
+    st.session_state.webhook_url_1 = st.text_input(
+        "Discord WEBHOOK 1",
+        value=st.session_state.webhook_url_1,
+        placeholder="https://discord.com/api/webhooks/...",
+        key="webhook_url_1_input"
+    )
+    st.session_state.webhook_url_2 = st.text_input(
+        "Discord WEBHOOK 2",
+        value=st.session_state.webhook_url_2,
+        placeholder="https://discord.com/api/webhooks/...",
+        key="webhook_url_2_input"
     )
 
     if st.session_state.manga_urls:
@@ -486,10 +494,11 @@ def show_manga_reader():
         if img_bytes:
             st.image(img_bytes, use_container_width=True)
             # Discordに送信ボタンを追加
-            if st.session_state.webhook_url:
+            webhook_urls_to_send = [st.session_state.webhook_url_1, st.session_state.webhook_url_2]
+            if any(webhook_urls_to_send):
                 filename = os.path.basename(img_path)
                 if st.button(f"Discord ({i+1}/{total_pages})", key=f"send_discord_{i}"):
-                    send_image_to_discord(img_path, st.session_state.webhook_url, filename)
+                    send_image_to_discord(img_path, webhook_urls_to_send, filename)
 
     # --- ページ下部のナビゲーション（もっと読み込む） ---
     if num_to_display < total_pages:
